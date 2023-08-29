@@ -119,7 +119,7 @@ class PaykeeperPluginTwigExt extends AbstractExtension
                         'service_name' => json_encode([
                             'cart' => $products,
                             'service_name' => $description,
-                            'user_result_callback' => $homepage . '/cart/done/' . $order->getUuid()->toString(),
+                            'user_result_callback' => $homepage . 'cart/done/' . $order->getUuid()->toString(),
                         ]),
                         'pay_amount' => $order->getTotalPrice(),
                         'token' => $result['token'],
