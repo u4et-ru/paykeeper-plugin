@@ -3,6 +3,7 @@
 namespace Plugin\Paykeeper\Actions;
 
 use App\Application\Actions\Cup\Catalog\CatalogAction;
+use App\Domain\Service\Catalog\Exception\OrderNotFoundException;
 
 class ResultAction extends CatalogAction
 {
@@ -20,31 +21,47 @@ class ResultAction extends CatalogAction
         ];
         $data = array_merge($default, $this->request->getQueryParams(), $secure);
 
-        $order = $this->catalogOrderService->read(['external_id' => $data['orderid'] . '-s']);
+        $this->logger->info('Paykeeper: params', $data);
 
-        if ($order) {
-            $check = md5(
-                $data['id'].
-                number_format(parse_url($data['sum']), 2, '.', '').
-                $data['clientid'].
-                $data['orderid'].
-                $data['secret']
-            );
-
-            if ($check === $data['key']) {
-                $status = $this->catalogOrderStatusService->read(['title' => 'Оплачен']);
-
-                $this->catalogOrderService->update($order, [
-                    'status' => $status ?? null,
-                    'system' => 'Заказ оплачен',
-                ]);
-
-                $this->container->get(\App\Application\PubSub::class)->publish('tm:order:oplata', $order);
-
-                return $this->respondWithText('OK '.md5($data['id'].$data['secret']));
-            } else {
-                return $this->respondWithText('Error! Hash mismatch');
+        if ($data['orderid'] && $data['sum']) {
+            try {
+                $order = $this->catalogOrderService->read(['external_id' => $data['orderid'] . '-s']);
+            } catch (OrderNotFoundException $e) {
+                try {
+                    $order = $this->catalogOrderService->read(['serial' => $data['orderid']]);
+                } catch (OrderNotFoundException $e) {
+                    return $this->respondWithText('Error! Order not found');
+                }
             }
+
+            if ($order) {
+                $check = md5(
+                    $data['id'].
+                    number_format(parse_url($data['sum']), 2, '.', '').
+                    $data['clientid'].
+                    $data['orderid'].
+                    $data['secret']
+                );
+
+                $this->logger->info('Paykeeper: params', ['key' => $check === $data['key']]);
+
+                if ($check === $data['key']) {
+                    $status = $this->catalogOrderStatusService->read(['title' => 'Оплачен']);
+
+                    $this->catalogOrderService->update($order, [
+                        'status' => $status ?? null,
+                        'system' => 'Заказ оплачен',
+                    ]);
+
+                    $this->container->get(\App\Application\PubSub::class)->publish('tm:order:oplata', $order);
+
+                    return $this->respondWithText('OK '.md5($data['id'].$data['secret']));
+                } else {
+                    return $this->respondWithText('Error! Hash mismatch');
+                }
+            }
+        } else {
+            return $this->respondWithText('Error! Wrong params');
         }
 
         return $this->respondWithRedirect('/');

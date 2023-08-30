@@ -86,52 +86,56 @@ class PaykeeperPluginTwigExt extends AbstractExtension
         ]);
 
         $result = file_get_contents($host . '/info/settings/token/', false, $context);
-        $result = json_decode($result, true);
-
-        if (!empty($result['token'])) {
-            $homepage = $this->parameter('common_homepage', '');
-            $description = $this->parameter('PaykeeperPlugin_description', '');
-            $products = [];
-
-            foreach ($order->getProducts() as $product) {
-                if ($product->getPrice() > 0) {
-                    $products[] = [
-                        'name' => $product->getTitle(),
-                        'price' => $product->getPrice(),
-                        'quantity' => $product->getCount(),
-                        'sum' => $product->getCount() * $product->getPrice(),
-                        'tax' => $this->parameter('PaykeeperPlugin_tax', 'none'),
-                        'item_type' => $product->getType() === 'product' ? 'goods' : $product->getType(),
-                    ];
-                }
-            }
-
-            // шаг 2: получение ссылки
-            $context = stream_context_create([
-                'http' => [
-                    'method' => 'POST',
-                    'header' => $header,
-                    'content' => http_build_query([
-                        'clientid' => $order->getDelivery()['client'],
-                        'client_email' => $order->getEmail(),
-                        'client_phone' => $order->getPhone(),
-                        'orderid' => $orderid,
-                        'service_name' => json_encode([
-                            'cart' => $products,
-                            'service_name' => $description,
-                            'user_result_callback' => $homepage . 'cart/done/' . $order->getUuid()->toString(),
-                        ]),
-                        'pay_amount' => $order->getTotalPrice(),
-                        'token' => $result['token'],
-                    ]),
-                ]
-            ]);
-
-            $result = file_get_contents($host . '/change/invoice/preview/', false, $context);
+        if ($result) {
             $result = json_decode($result, true);
 
-            if (!empty($result['invoice_id'])) {
-                return $result['invoice_url'];
+            if (!empty($result['token'])) {
+                $homepage = $this->parameter('common_homepage', '');
+                $description = $this->parameter('PaykeeperPlugin_description', '');
+                $products = [];
+
+                foreach ($order->getProducts() as $product) {
+                    if ($product->getPrice() > 0) {
+                        $products[] = [
+                            'name' => $product->getTitle(),
+                            'price' => $product->getPrice(),
+                            'quantity' => $product->getCount(),
+                            'sum' => $product->getCount() * $product->getPrice(),
+                            'tax' => $this->parameter('PaykeeperPlugin_tax', 'none'),
+                            'item_type' => $product->getType() === 'product' ? 'goods' : $product->getType(),
+                        ];
+                    }
+                }
+
+                // шаг 2: получение ссылки
+                $context = stream_context_create([
+                    'http' => [
+                        'method' => 'POST',
+                        'header' => $header,
+                        'content' => http_build_query([
+                            'clientid' => $order->getDelivery()['client'],
+                            'client_email' => $order->getEmail(),
+                            'client_phone' => $order->getPhone(),
+                            'orderid' => $orderid,
+                            'service_name' => json_encode([
+                                'cart' => $products,
+                                'service_name' => $description,
+                                'user_result_callback' => $homepage . 'cart/done/' . $order->getUuid()->toString(),
+                            ]),
+                            'pay_amount' => $order->getTotalPrice(),
+                            'token' => $result['token'],
+                        ]),
+                    ]
+                ]);
+
+                $result = file_get_contents($host . '/change/invoice/preview/', false, $context);
+                if ($result) {
+                    $result = json_decode($result, true);
+
+                    if (!empty($result['invoice_id'])) {
+                        return $result['invoice_url'];
+                    }
+                }
             }
         }
 

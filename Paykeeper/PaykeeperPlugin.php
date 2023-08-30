@@ -13,7 +13,7 @@ class PaykeeperPlugin extends AbstractPlugin
     const NAME = 'PaykeeperPlugin';
     const TITLE = 'Paykeeper';
     const AUTHOR_SITE = 'https://u4et.ru';
-    const VERSION = '1.1';
+    const VERSION = '1.2';
 
     public function __construct(ContainerInterface $container)
     {
@@ -73,9 +73,9 @@ class PaykeeperPlugin extends AbstractPlugin
         $this
             ->map([
                 'methods' => ['get', 'post'],
-                'pattern' => '/cart/done/kp/result',
+                'pattern' => '/cart/done/pk/result',
                 'handler' => \Plugin\Paykeeper\Actions\ResultAction::class,
             ])
-            ->setName('common:kp:result');
+            ->setName('common:pk:result');
     }
 }
