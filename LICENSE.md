@@ -1,6 +1,6 @@
 The MIT License
 
-Copyright (c) 2023 ilshatkin (u4et.ru)
+Copyright (c) 2024 ilshatkin (u4et.ru)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
