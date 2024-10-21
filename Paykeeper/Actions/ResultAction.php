@@ -46,16 +46,9 @@ class ResultAction extends CatalogAction
                 $this->logger->info('Paykeeper: params', ['key' => $check === $data['key']]);
 
                 if ($check === $data['key']) {
-                    $status = $this->catalogOrderStatusService->read(['title' => 'Оплачен']);
+                    $this->container->get(\App\Application\PubSub::class)->publish('plugin:order:payment', $order);
 
-                    $this->catalogOrderService->update($order, [
-                        'status' => $status ?? null,
-                        'system' => 'Заказ оплачен',
-                    ]);
-
-                    $this->container->get(\App\Application\PubSub::class)->publish('tm:order:oplata', $order);
-
-                    return $this->respondWithText('OK '.md5($data['id'].$data['secret']));
+                    return $this->respondWithText('OK ' . md5($data['id'].$data['secret']));
                 } else {
                     return $this->respondWithText('Error! Hash mismatch');
                 }
